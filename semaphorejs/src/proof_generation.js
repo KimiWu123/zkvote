@@ -43,7 +43,7 @@ function generateProof(cir_def, proving_key, verification_key, prvSeed, identity
     // generateProof2(cir_def, proving_key, verification_key, prvSeed, quesiton, vote)
     let now = Date.now();
     const inputs = privateVote.vote(prvSeed, identity_path, quesiton, vote)
-    console.log(`inputs:`, unstringifyBigInts(inputs));
+    // console.log(`inputs:`, unstringifyBigInts(inputs));
 
     // 
     // calculating witness

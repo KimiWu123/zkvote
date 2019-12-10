@@ -36,8 +36,9 @@ let build_merkle_tree_example = (n_levels, identity_commitment) => {
 };
 
 
+let tree = [];
 let build_full_merkle_tree_example = (n_levels, index, identity_commitment) => {
-    let tree = [];
+    
     let current_index = index;
     let path_index = [];
     let path_elements = [];
@@ -46,9 +47,13 @@ let build_full_merkle_tree_example = (n_levels, index, identity_commitment) => {
       path_index.push(current_index % 2);
       for (let j = 0; j < Math.pow(2, n_levels - i); j++) {
         if (i == 0) {
-          if (j == index) {
+          if (j < index) {
+            tree_level.push(tree[0][j])
+            // console.log(tree[0][j])
+          } else if (j == index) {
             // tree_level.push(bigInt(0));
             tree_level.push(bigInt(identity_commitment));
+            // console.log(tree_level)
           } else {
             tree_level.push(bigInt(0));
             // tree_level.push(bigInt(j));
@@ -58,7 +63,7 @@ let build_full_merkle_tree_example = (n_levels, index, identity_commitment) => {
             let h = mimc7.multiHash([ tree[i-1][2*j]/bigInt(8), tree[i-1][2*j+1]/bigInt(8) ])
             // let h = privateVote.pedersenHash( [tree[i-1][2*j], tree[i-1][2*j+1]] );
             tree_level.push(h );
-            // console.log(h)
+            // console.log(i, " - ", tree_level)
         }
       }
       if (current_index % 2 == 0) {
@@ -67,7 +72,10 @@ let build_full_merkle_tree_example = (n_levels, index, identity_commitment) => {
         path_elements.push(tree_level[current_index - 1]);
       }
 
-      tree.push(tree_level);
+      // console.log(i)
+      // console.log(tree_level)
+      tree[i] = tree_level
+      // tree.push(tree_level);
       current_index = Math.floor(current_index / 2);
     }
 
@@ -93,17 +101,20 @@ for (let i=0; i<10; i++) {
         "path_index":   tree[2], 
         "root": tree[0]
     }
-    const proofs = proof.generateProof(
-        cir_def,
-        proving_key,
-        verification_key,
-        private_key, 
-        identity_path,
-        "this is a question.", 
-        i%2
-    )
-    const file = "vote" + i + ".proof"
-    fs.writeFileSync(file, JSON.stringify(proofs), "utf8");
+    if (i > 6) {
+      const proofs = proof.generateProof(
+          cir_def,
+          proving_key,
+          verification_key,
+          private_key, 
+          identity_path,
+          "this is a question.", 
+          i%2
+      )
+      const file = "vote" + i + ".proof"
+      fs.writeFileSync(file, JSON.stringify(proofs), "utf8");
+      console.log("")
+    }
     // console.log("output\n", proofs)
 }
 
