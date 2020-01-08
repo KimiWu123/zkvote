@@ -19,10 +19,8 @@
  */
 
 const crypto = require('crypto');
-const path = require('path');
 const blake = require('blakejs')
-// const {unstringifyBigInts, stringifyBigInts} = require('websnark/tools/stringifybigint.js');
-const {unstringifyBigInts, stringifyBigInts} = require('snarkjs/src/stringifybigint.js');
+const {stringifyBigInts} = require('snarkjs/src/stringifybigint.js');
 
 const chai = require('chai');
 const assert = chai.assert;
@@ -36,7 +34,7 @@ const mimcsponge = circomlib.mimcsponge;
 
 const ethers = require('ethers');
 
-let logger;
+// let logger;
 const SECRET_HASH_RUNS = 100;
 
 
@@ -59,8 +57,8 @@ function vote(private_key, identity_path, question, signal) {
     const pubKey = eddsa.prv2pub(prvKey);
     
     const id = get_id_commitment(private_key)
-    console.log("secret:\n ", id.id_secret, " --> identity_secret")
-    console.log("id commitment:\n ", id.id_commitment)
+    // console.log("secret:\n ", id.id_secret, " --> identity_secret")
+    // console.log("id commitment:\n ", id.id_commitment)
 
     // verify signature
     // let big_question = bigInt.leBuff2int(Buffer.from(question));
@@ -123,7 +121,6 @@ function get_id_commitment(private_key) {
     // console.log(`identity_secret: ${big_id_secret}`);
 
     let id_commitment = pedersenHash([bigInt(circomlib.babyJub.mulPointEscalar(pubKey, 8)[0]), big_id_secret]);
-    id_commitment = id_commitment
     // console.log(`identity_commitment : ${id_commitment}`);
     return  {
         id_secret: big_id_secret.toString(),
@@ -134,8 +131,8 @@ function get_id_commitment(private_key) {
 function generate_identity() {
   const private_key = crypto.randomBytes(32).toString('hex');
   const pubKey = eddsa.prv2pub(Buffer.from(private_key, 'hex'));
-  console.log(`generate identity from (private_key, public_key[0], public_key[1]): 
-      (${private_key}, ${pubKey[0]}, ${pubKey[1]})`);
+  // console.log(`generate identity from (private_key, public_key[0], public_key[1]): 
+  //     (${private_key}, ${pubKey[0]}, ${pubKey[1]})`);
 
   return private_key;
 }

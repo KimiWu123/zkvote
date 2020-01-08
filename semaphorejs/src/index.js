@@ -1,5 +1,6 @@
 const privateVote = require('./private_vote.js')
 const proof = require('./proof_generation.js');
+const tool = require('./witness_conversion.js')
 const fs = require('fs');
 
 const snarkjs = require('snarkjs');
@@ -8,6 +9,8 @@ const bigInt = snarkjs.bigInt;
 const circomlib = require('circomlib');
 const mimcsponge = circomlib.mimcsponge;
 const mimc7 = circomlib.mimc7;
+
+const {unstringifyBigInts, stringifyBigInts} = require('websnark/tools/stringifybigint.js');
 
 // const input = privateVote.vote("0001020304050607080900010203040506070809000102030405060708090001", 
 //                                 0,
@@ -36,9 +39,8 @@ let build_merkle_tree_example = (n_levels, identity_commitment) => {
 };
 
 
-let tree = [];
 let build_full_merkle_tree_example = (n_levels, index, identity_commitment) => {
-    
+    let tree = [];
     let current_index = index;
     let path_index = [];
     let path_elements = [];
@@ -47,13 +49,9 @@ let build_full_merkle_tree_example = (n_levels, index, identity_commitment) => {
       path_index.push(current_index % 2);
       for (let j = 0; j < Math.pow(2, n_levels - i); j++) {
         if (i == 0) {
-          if (j < index) {
-            tree_level.push(tree[0][j])
-            // console.log(tree[0][j])
-          } else if (j == index) {
+          if (j == index) {
             // tree_level.push(bigInt(0));
             tree_level.push(bigInt(identity_commitment));
-            // console.log(tree_level)
           } else {
             tree_level.push(bigInt(0));
             // tree_level.push(bigInt(j));
@@ -63,7 +61,7 @@ let build_full_merkle_tree_example = (n_levels, index, identity_commitment) => {
             let h = mimc7.multiHash([ tree[i-1][2*j]/bigInt(8), tree[i-1][2*j+1]/bigInt(8) ])
             // let h = privateVote.pedersenHash( [tree[i-1][2*j], tree[i-1][2*j+1]] );
             tree_level.push(h );
-            // console.log(i, " - ", tree_level)
+            // console.log(h)
         }
       }
       if (current_index % 2 == 0) {
@@ -72,10 +70,7 @@ let build_full_merkle_tree_example = (n_levels, index, identity_commitment) => {
         path_elements.push(tree_level[current_index - 1]);
       }
 
-      // console.log(i)
-      // console.log(tree_level)
-      tree[i] = tree_level
-      // tree.push(tree_level);
+      tree.push(tree_level);
       current_index = Math.floor(current_index / 2);
     }
 
@@ -87,12 +82,24 @@ let build_full_merkle_tree_example = (n_levels, index, identity_commitment) => {
     return [root,  path_elements, path_index];
 };
 
+const gen = async () =>{
 
-const cir_def = JSON.parse(fs.readFileSync('./snark_data/circuit.json', 'utf8'));
-const proving_key = JSON.parse(fs.readFileSync('./snark_data/proving_key.json', 'utf8'));
-const verification_key = JSON.parse(fs.readFileSync('./snark_data/verification_key.json', 'utf8'));
-// const tree = build_merkle_tree_example(10, privateVote.get_id_commitment(private_key).id_commitment)
-for (let i=0; i<10; i++) {
+  const cir_def = JSON.parse(fs.readFileSync('../snark_data/circuit.json', 'utf8'));
+  // const proving_key = JSON.parse(fs.readFileSync('./snark_data/proving_key.json', 'utf8'));
+  const proving_key = fs.readFileSync('../snark_data/proving_key.bin');
+  const verification_key = JSON.parse(fs.readFileSync('../snark_data/verification_key.json', 'utf8'));
+  
+
+  console.log("Proof conversion...")
+  let now = Date.now()
+  var pk = new ArrayBuffer(proving_key.length);
+  var arr = new Uint32Array(pk);
+  for (var i=0; i<proving_key.length/4; i++) {
+      arr[i] = new Uint32Array(proving_key.buffer.slice(4*i, 4*i+4))
+  }
+  console.log(`proof conversion (took ${Date.now()-now} msecs)`);
+
+  for (let i=0; i<10; i++) {
     const private_key = "00010203040506070809000102030405060708090001020304050607080900" + i
     const tree = build_full_merkle_tree_example(10, i, privateVote.get_id_commitment(private_key).id_commitment)
     // console.log(tree)
@@ -101,20 +108,19 @@ for (let i=0; i<10; i++) {
         "path_index":   tree[2], 
         "root": tree[0]
     }
-    if (i > 6) {
-      const proofs = proof.generateProof(
-          cir_def,
-          proving_key,
-          verification_key,
-          private_key, 
-          identity_path,
-          "this is a question.", 
-          i%2
-      )
-      const file = "vote" + i + ".proof"
-      fs.writeFileSync(file, JSON.stringify(proofs), "utf8");
-      console.log("")
-    }
+    const proofs = await proof.generateProof(
+        cir_def,
+        pk,
+        verification_key,
+        private_key, 
+        identity_path,
+        "this is a question.", 
+        i%2
+    )
+    const file = "vote" + i + ".proof"
+    fs.writeFileSync(file, JSON.stringify(proofs), "utf8");
     // console.log("output\n", proofs)
-}
+  }
+};
 
+gen()
